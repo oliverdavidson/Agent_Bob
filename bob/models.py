@@ -182,3 +182,60 @@ class QboSetting(Base):
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     value: Mapped[str | None] = mapped_column(String(255))
     synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class QboBill(Base):
+    """Recent QBO bills and vendor credits: vendor coding history and duplicate checks."""
+
+    __tablename__ = "qbo_bills"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # "<entity>:<qbo id>"
+    entity: Mapped[str] = mapped_column(String(32))  # Bill | VendorCredit | Purchase
+    vendor_id: Mapped[str | None] = mapped_column(String(32), index=True)
+    vendor_name: Mapped[str | None] = mapped_column(String(500))
+    doc_number: Mapped[str | None] = mapped_column(String(64))
+    txn_date: Mapped[str] = mapped_column(String(10))
+    total: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    # [{"account_id", "account_name", "amount", "tax_code_id", "description"}]
+    lines: Mapped[list] = mapped_column(JSON, default=list)
+    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Proposal(Base):
+    """A proposed accounting entry for a document. Never edited in place: a change creates
+    a new version and marks the old one superseded.
+
+    Status: proposed -> held | approved -> posting -> posted -> reversed
+            with side exits needs_fix, rejected, failed, superseded.
+    """
+
+    __tablename__ = "proposals"
+
+    id: Mapped[int] = mapped_column(PK, primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    # How it was approved: rule (auto) or the reviewer's address.
+    approved_by: Mapped[str | None] = mapped_column(String(320))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    entry: Mapped[dict] = mapped_column(JSON)  # serialised ProposedEntry
+    outcome: Mapped[str] = mapped_column(String(16))  # validator outcome
+    findings: Mapped[list] = mapped_column(JSON, default=list)
+    rationale: Mapped[str] = mapped_column(Text, default="")
+    question: Mapped[str | None] = mapped_column(Text)
+    second_opinion: Mapped[dict | None] = mapped_column(JSON)
+    model_name: Mapped[str | None] = mapped_column(String(64))
+    prompt_version: Mapped[str | None] = mapped_column(String(32))
+    # QuickBooks result
+    request_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    qbo_entity: Mapped[str | None] = mapped_column(String(32))
+    qbo_id: Mapped[str | None] = mapped_column(String(32))
+    posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    document: Mapped[Document] = relationship()

@@ -79,8 +79,10 @@ class FakeClaude:
 
     def _parse(self, **kwargs):
         self.calls.append(kwargs)
+        # A list scripts successive calls (e.g. a first reading and a second opinion).
+        parsed = self.parsed.pop(0) if isinstance(self.parsed, list) else self.parsed
         return SimpleNamespace(
-            parsed_output=self.parsed, stop_reason=self.stop_reason, stop_details=None
+            parsed_output=parsed, stop_reason=self.stop_reason, stop_details=None
         )
 
 

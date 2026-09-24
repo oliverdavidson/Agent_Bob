@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     foundry_api_key: str | None = None
     model: str = "claude-opus-5-5"
     triage_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    coding_effort: Literal["low", "medium", "high", "xhigh", "max"] = "high"
 
     # QuickBooks Online. Writes stay off until the posting slice is built and tested.
     qbo_environment: Literal["sandbox", "production"] = "sandbox"

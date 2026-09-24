@@ -5,7 +5,7 @@ from sqlalchemy import select
 from bob.agent.triage import TriagedItem, TriageResult, triage_email
 from bob.mail.ingest import poll_mailbox
 from bob.mail.source import MailAttachment
-from bob.models import AuditEvent, Document, InboundEmail
+from bob.models import AuditEvent, Document, InboundEmail, Job
 from tests.conftest import PDF_BYTES, FakeClaude, FakeMail, make_message
 
 _message_numbers = count(1)
@@ -65,6 +65,9 @@ def test_routes_each_type(factory, storage, settings):
         ("vendor_statement", "evidence"),
         ("gl_export", "migration"),
     ]
+    with factory() as s:
+        coding_jobs = s.scalars(select(Job).where(Job.kind == "code_document")).all()
+        assert len(coding_jobs) == 1  # only the invoice is bookable
     content = claude.calls[0]["messages"][0]["content"]
     assert any(b["type"] == "document" and b["title"] == "inv.pdf" for b in content)
     assert any("account,debit,credit" in b.get("text", "") for b in content)

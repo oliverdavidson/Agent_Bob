@@ -10,6 +10,7 @@ from functools import partial
 from fastapi import FastAPI
 from sqlalchemy import func, select, text
 
+from bob.agent.coding import code_document
 from bob.agent.llm import make_client
 from bob.agent.triage import triage_email
 from bob.config import get_settings
@@ -35,6 +36,9 @@ def build_worker() -> Worker:
     handlers = {
         "triage_email": lambda session, p: triage_email(
             session, p["email_id"], client, storage, settings
+        ),
+        "code_document": lambda session, p: code_document(
+            session, p["document_id"], client, storage, settings
         ),
     }
     periodic = []

@@ -88,6 +88,28 @@ class FakeIntuit:
                 {"Id": "3", "Name": "GST", "RateValue": 5},
                 {"Id": "7", "Name": "HST ON", "RateValue": 13},
             ],
+            "Bill": [
+                {
+                    "Id": "900",
+                    "DocNumber": "NW-10311",
+                    "TxnDate": "2026-09-01",
+                    "TotalAmt": 1260.0,
+                    "VendorRef": {"value": "17", "name": "Northwind Software"},
+                    "Line": [
+                        {
+                            "Amount": 1200.0,
+                            "Description": "Subscription",
+                            "DetailType": "AccountBasedExpenseLineDetail",
+                            "AccountBasedExpenseLineDetail": {
+                                "AccountRef": {"value": "7", "name": "Software"},
+                                "TaxCodeRef": {"value": "4"},
+                            },
+                        }
+                    ],
+                }
+            ],
+            "VendorCredit": [],
+            "Purchase": [],
             "TaxCode": [
                 {
                     "Id": "4",
@@ -208,7 +230,7 @@ def test_sync_fills_cache_and_feeds_validator(qbo, factory):
     with factory() as s:
         summary = sync_reference_data(s, qbo)
         s.commit()
-    assert (summary.accounts, summary.vendors, summary.tax_codes) == (1202, 1, 3)
+    assert (summary.accounts, summary.vendors, summary.tax_codes, summary.bills) == (1202, 1, 3, 1)
 
     with factory() as s:
         rates = {t.name: Decimal(t.purchase_rate) for t in s.scalars(select(QboTaxCode))}

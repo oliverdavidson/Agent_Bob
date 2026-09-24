@@ -15,7 +15,7 @@ from anthropic import AnthropicFoundry
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from bob import audit
+from bob import audit, jobs
 from bob.config import Settings
 from bob.models import Attachment, Document, InboundEmail
 from bob.storage import Storage
@@ -265,6 +265,11 @@ def triage_email(
 
     email.status = "triaged"
     session.flush()
+    for doc in email.documents:
+        if doc.status == "ready_to_code":
+            jobs.enqueue(
+                session, "code_document", {"document_id": doc.id}, dedupe_key=f"code:{doc.id}"
+            )
     audit.record(
         session,
         "email.triaged",

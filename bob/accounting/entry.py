@@ -44,3 +44,69 @@ class ProposedEntry:
     service_start: date | None = None
     service_end: date | None = None
     tags: frozenset[str] = field(default_factory=frozenset)
+
+
+def entry_to_dict(entry: ProposedEntry) -> dict:
+    def s(value):
+        return None if value is None else str(value)
+
+    return {
+        "kind": entry.kind,
+        "vendor_name": entry.vendor_name,
+        "vendor_id": entry.vendor_id,
+        "invoice_number": entry.invoice_number,
+        "invoice_date": entry.invoice_date.isoformat(),
+        "currency": entry.currency,
+        "subtotal": str(entry.subtotal),
+        "tax_total": str(entry.tax_total),
+        "total": str(entry.total),
+        "lines": [
+            {
+                "account_id": line.account_id,
+                "amount": str(line.amount),
+                "tax_code_id": line.tax_code_id,
+                "tax_amount": str(line.tax_amount),
+                "description": line.description,
+            }
+            for line in entry.lines
+        ],
+        "document_sha256": entry.document_sha256,
+        "supplier_tax_number": entry.supplier_tax_number,
+        "due_date": s(entry.due_date),
+        "service_start": s(entry.service_start),
+        "service_end": s(entry.service_end),
+        "tags": sorted(entry.tags),
+    }
+
+
+def entry_from_dict(data: dict) -> ProposedEntry:
+    def d(value):
+        return None if value is None else date.fromisoformat(value)
+
+    return ProposedEntry(
+        kind=data["kind"],
+        vendor_name=data["vendor_name"],
+        vendor_id=data.get("vendor_id"),
+        invoice_number=data.get("invoice_number"),
+        invoice_date=date.fromisoformat(data["invoice_date"]),
+        currency=data["currency"],
+        subtotal=Decimal(data["subtotal"]),
+        tax_total=Decimal(data["tax_total"]),
+        total=Decimal(data["total"]),
+        lines=tuple(
+            ProposedLine(
+                account_id=line["account_id"],
+                amount=Decimal(line["amount"]),
+                tax_code_id=line["tax_code_id"],
+                tax_amount=Decimal(line["tax_amount"]),
+                description=line.get("description", ""),
+            )
+            for line in data["lines"]
+        ),
+        document_sha256=data.get("document_sha256"),
+        supplier_tax_number=data.get("supplier_tax_number"),
+        due_date=d(data.get("due_date")),
+        service_start=d(data.get("service_start")),
+        service_end=d(data.get("service_end")),
+        tags=frozenset(data.get("tags", [])),
+    )
