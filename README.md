@@ -65,7 +65,7 @@ BOB_TEST_DATABASE_URL=postgresql+psycopg://user@localhost/bob_test pytest
    ```
    `Application Mail.Send` is added the same way when the reply loop is built.
 
-4. **Claude on Foundry.** Deploy a Claude model in the Foundry resource. Set `BOB_MODEL` to the deployment name if it differs from `claude-opus-5`. Give Bob's managed identity the role Foundry requires for Entra ID model calls on that resource (check Foundry's current docs; typically Azure AI User or Cognitive Services User):
+4. **Claude on Foundry.** Deploy a Claude model in the Foundry resource. Set `BOB_MODEL` to the deployment name if it differs from `claude-opus-5-5`. Give Bob's managed identity the role Foundry requires for Entra ID model calls on that resource (check Foundry's current docs; typically Azure AI User or Cognitive Services User):
    ```bash
    az role assignment create --assignee <identityPrincipalId> --role "<role>" --scope <foundry-resource-id>
    ```

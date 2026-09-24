@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # Claude on Microsoft Foundry. Uses Entra ID (managed identity) unless an API key is set.
     foundry_resource: str | None = None
     foundry_api_key: str | None = None
-    model: str = "claude-opus-5"
+    model: str = "claude-opus-5-5"
     triage_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
 
     # QuickBooks Online. Writes stay off until the posting slice is built and tested.
