@@ -49,14 +49,23 @@ Decisions agreed so far, and the build plan they lead to.
 | Slice | Contents | Status |
 |---|---|---|
 | 1 | Skeleton, Postgres schema and queue, mailbox ingestion, triage, Bicep, tests | Done |
-| 1b | Validator; sender verification (SPF/DKIM/DMARC, lookalike domains); triage test set of 26 cases | Done |
-| 2 | QBO OAuth and read sync (accounts, vendors, tax codes, closing date), write-guarded client | Built; needs an Intuit sandbox to test live |
-| 3 | Coding step, posting to the sandbox, undo | Next |
-| 4 | Daily digest and email reply loop (needs Mail.Send on the mailbox) | |
-| 5 | Opening-balance import from the Sept 30 trial balance; Business Central history load | |
+| 1b | Validator; sender verification (SPF/DKIM/DMARC, lookalike domains); triage test set (26 cases) | Done |
+| 2 | QBO OAuth and read sync (accounts, vendors, tax codes, closing date, 18 months of bills), write-guarded client | Built; needs an Intuit sandbox to test live |
+| 3 | Coding step with second opinion; posting (bills, vendor credits, card purchases, attachments); undo; kill switch and daily caps; admin commands | Built; needs the sandbox |
+| 4 | Reviewer questions, email replies (approve / reject / change / answer), daily digest | Built; needs Mail.Send on the mailbox |
+| 5 | Opening-balance import from the Sept 30 trial balance, with true-up | Built; needs a sample Business Central export to confirm the format |
+| 5b | Open AP/AR import (individual open bills and invoices at cutover); Business Central history load as coding memory | Next |
 | 6 | Month-end comparison report against Business Central for the Q4 run | |
 
+Coding test set: 14 cases with the correct booking (`evals/coding`).
+
 ## Open items
+
+- Coding policy (`bob/agent/prompts/coding_policy.md`) is a draft: capex threshold ($2,500), prepaid rule (over three months), deal-cost treatment. The accountant should replace it.
+- Receipts need `BOB_EXPENSE_PAYMENT_ACCOUNT_ID` (the company card or Float clearing account); until set, receipts are held.
+- Daily posting caps for rule-approved entries: 25 entries / $50,000 per rolling 24 hours (placeholders).
+- Undo deletes the QuickBooks transaction (bills cannot be voided in QBO); QBO's own audit log keeps the record.
+- Tax on posted entries is sent as `TxnTaxDetail.TotalTax` with each line's tax code; confirm QBO keeps the invoice's exact tax in the sandbox.
 
 - Materiality threshold (placeholder `BOB_MATERIALITY=25000`) and the hold list, with the accountant.
 - QBO OAuth tokens are stored in Postgres; move them to Key Vault before production.

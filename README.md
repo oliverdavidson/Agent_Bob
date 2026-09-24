@@ -4,7 +4,9 @@ Bob is BridgeWerk's bookkeeping agent. People email documents to `bob@bridgewerk
 
 The plan, decisions and build order are in [docs/phase1-spec.md](docs/phase1-spec.md).
 
-**Current state:** Bob reads new mail, stores the originals, checks that the sender is genuine (SPF/DKIM/DMARC and lookalike domains), flags duplicates and classifies each attachment. The validator that checks proposed entries before posting is built, and so is the QuickBooks connection (sign-in, read-only reference sync, a client that refuses writes). The coding step and posting come next; nothing is written to QuickBooks yet.
+**Current state:** the whole phase 1 pipeline is built and tested against simulated services: mailbox ingestion with sender verification, triage, coding with a second opinion, the validator, posting to QuickBooks (writes off by default), undo, reviewer questions answered by email reply, a daily digest, and the opening-balance import. It has not yet run against real Foundry, Graph or QuickBooks; see "Deploying to Azure" and docs/phase1-spec.md.
+
+Operator commands: `python -m bob.admin status|pause|resume|approve|reject|undo` and `python -m bob.migration.opening suggest|prepare|post`.
 
 ## Layout
 
@@ -15,9 +17,12 @@ bob/
   jobs.py          Postgres work queue (SELECT ... FOR UPDATE SKIP LOCKED)
   audit.py         append-only audit events
   storage.py       original documents (local disk in dev, Blob Storage in Azure)
-  mail/            Microsoft Graph mailbox client and ingestion
-  agent/           Claude on Foundry: client, triage step, versioned prompts
-  accounting/      proposed-entry shape, validator, validator context from the QBO cache
+  mail/            Graph mailbox client, ingestion, sender checks, questions and digest
+  agent/           Claude on Foundry: triage, coding, reply handling; versioned prompts and
+                   the coding policy
+  accounting/      proposed entry, validator, posting to QuickBooks, undo, kill switch
+  migration/       opening balances from the Business Central trial balance
+  admin.py         operator commands
   qbo/             QuickBooks OAuth, API client (writes disabled by default), reference sync
   worker.py        background loop: poll mailbox, run jobs
   main.py          FastAPI app (health, status) that also runs the worker

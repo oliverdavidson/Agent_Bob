@@ -18,3 +18,16 @@ Each run prints pass/fail per case with what Bob answered, and saves JSON to `ev
 `tests/test_eval_harness.py` runs the same cases with a scripted model, so the harness itself and the rules that code enforces regardless of the model (duplicates, sender checks) are covered by the normal test suite.
 
 Each invoice case also records the extraction ground truth (vendor, number, date, subtotal, tax, total, GST number). The coding step's eval will score against it.
+
+## Coding
+
+14 of the triage documents with the correct booking: kind, accounts, tax codes, required tags, vendor, total and where the proposal should end up (approved to post, or held for a person). Accounts refer to a fictional chart in `evals/coding/chart.py`; where accountants could reasonably differ (a monitor arm as office supplies or computer equipment), several answers are accepted.
+
+```bash
+python -m evals.coding.run
+python -m evals.coding.run --only legal-acquisition,insurance-annual
+```
+
+Prints each case with what Bob proposed and which fields were wrong, then totals by field (accounts 12/14, tax codes 14/14, ...). `tests/test_coding_eval_harness.py` runs every case with a scripted correct answer, so the harness and the validator routing are tested without the model.
+
+Once the QuickBooks sandbox is connected, replace `chart.py` with the sandbox's real chart of accounts and re-map the expected accounts.
