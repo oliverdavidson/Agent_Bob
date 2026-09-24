@@ -6,7 +6,7 @@ The plan, decisions and build order are in [docs/phase1-spec.md](docs/phase1-spe
 
 **Current state:** the whole phase 1 pipeline is built and tested against simulated services: mailbox ingestion with sender verification, triage, coding with a second opinion, the validator, posting to QuickBooks (writes off by default), undo, reviewer questions answered by email reply, a daily digest, and the opening-balance import. It has not yet run against real Foundry, Graph or QuickBooks; see "Deploying to Azure" and docs/phase1-spec.md.
 
-Operator commands: `python -m bob.admin status|pause|resume|approve|reject|undo` and `python -m bob.migration.opening suggest|prepare|post`.
+Operator commands: `python -m bob.admin status|pause|resume|approve|reject|undo`, `python -m bob.qbo.connect|check` and `python -m bob.migration.opening suggest|prepare|post`.
 
 ## Layout
 
@@ -82,11 +82,16 @@ BOB_TEST_DATABASE_URL=postgresql+psycopg://user@localhost/bob_test pytest
    az role assignment create --assignee <identityPrincipalId> --role "<role>" --scope <foundry-resource-id>
    ```
 
-5. **QuickBooks (sandbox first).** In the [Intuit Developer portal](https://developer.intuit.com), create an app with the Accounting scope and a sandbox company. Add `http://localhost:8765/qbo/callback` as a redirect URI. Set `BOB_QBO_CLIENT_ID` and `BOB_QBO_CLIENT_SECRET`, then connect once:
+5. **QuickBooks (sandbox first).** In the [Intuit Developer portal](https://developer.intuit.com), create an app with the Accounting scope and a sandbox company, choosing **Canada** as the sandbox's country (the default is the US, which has no GST codes). Under the app's development keys, add `http://localhost:8765/qbo/callback` as a redirect URI. Set `BOB_QBO_CLIENT_ID` and `BOB_QBO_CLIENT_SECRET` from those keys, then connect once:
    ```bash
    python -m bob.qbo.connect
    ```
-   Open the printed link, approve, and paste back the address your browser lands on (an error page is fine; the code is in the URL). Bob then syncs accounts, vendors, tax codes and the closing date every `BOB_QBO_SYNC_HOURS`. Writes stay refused until `BOB_QBO_WRITES_ENABLED=true`.
+   Open the printed link, approve, and paste back the address your browser lands on (an error page is fine; the code is in the URL). Then check the connection:
+   ```bash
+   python -m bob.qbo.check                # company, GST code, accounts, reference sync
+   python -m bob.qbo.check --write-test   # sandbox only: posts, attaches to and deletes test entries
+   ```
+   The write test also shows whether QuickBooks keeps an invoice's own tax total or recomputes it per line. Bob then syncs accounts, vendors, tax codes and the closing date every `BOB_QBO_SYNC_HOURS`. Writes stay refused until `BOB_QBO_WRITES_ENABLED=true`.
 
 6. **Check it.** `az containerapp logs show -g rg-bob -n bob --follow`, then send a test invoice to `bob@bridgewerk.ca`.
 

@@ -50,7 +50,7 @@ Decisions agreed so far, and the build plan they lead to.
 |---|---|---|
 | 1 | Skeleton, Postgres schema and queue, mailbox ingestion, triage, Bicep, tests | Done |
 | 1b | Validator; sender verification (SPF/DKIM/DMARC, lookalike domains); triage test set (26 cases) | Done |
-| 2 | QBO OAuth and read sync (accounts, vendors, tax codes, closing date, 18 months of bills), write-guarded client | Built; needs an Intuit sandbox to test live |
+| 2 | QBO OAuth and read sync (accounts, vendors, tax codes, closing date, 18 months of bills), write-guarded client; connection check with a sandbox write round trip (`python -m bob.qbo.check`) | Built; needs an Intuit sandbox to test live |
 | 3 | Coding step with second opinion; posting (bills, vendor credits, card purchases, attachments); undo; kill switch and daily caps; admin commands | Built; needs the sandbox |
 | 4 | Reviewer questions, email replies (approve / reject / change / answer), daily digest | Built; needs Mail.Send on the mailbox |
 | 5 | Opening-balance import from the Sept 30 trial balance, with true-up | Built; needs a sample Business Central export to confirm the format |
@@ -65,7 +65,7 @@ Coding test set: 14 cases with the correct booking (`evals/coding`).
 - Receipts need `BOB_EXPENSE_PAYMENT_ACCOUNT_ID` (the company card or Float clearing account); until set, receipts are held.
 - Daily posting caps for rule-approved entries: 25 entries / $50,000 per rolling 24 hours (placeholders).
 - Undo deletes the QuickBooks transaction (bills cannot be voided in QBO); QBO's own audit log keeps the record.
-- Tax on posted entries is sent as `TxnTaxDetail.TotalTax` with each line's tax code; confirm QBO keeps the invoice's exact tax in the sandbox.
+- Tax on posted entries is sent as `TxnTaxDetail.TotalTax` with each line's tax code; `python -m bob.qbo.check --write-test` shows whether QBO keeps the invoice's exact tax (it posts a bill where the two differ by a cent). If it recomputes, posting must send explicit tax lines.
 
 - Materiality threshold (placeholder `BOB_MATERIALITY=25000`) and the hold list, with the accountant.
 - QBO OAuth tokens are stored in Postgres; move them to Key Vault before production.
