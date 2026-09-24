@@ -125,3 +125,18 @@ class GraphMailSource:
             r.raise_for_status()
             self._processed_folder_id = r.json()["id"]
         return self._processed_folder_id
+
+    def send(self, to: list[str], subject: str, body: str) -> None:
+        r = self._http.post(
+            f"{self._base}/sendMail",
+            headers=self._headers(),
+            json={
+                "message": {
+                    "subject": subject,
+                    "body": {"contentType": "Text", "content": body},
+                    "toRecipients": [{"emailAddress": {"address": a}} for a in to],
+                },
+                "saveToSentItems": True,
+            },
+        )
+        r.raise_for_status()

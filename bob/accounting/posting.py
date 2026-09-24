@@ -28,7 +28,15 @@ from bob.accounting.validate import validate
 from bob.agent.coding import known_invoices
 from bob.config import Settings
 from bob.db import utcnow
-from bob.models import Attachment, Control, Document, Proposal, QboSetting, QboVendor
+from bob.models import (
+    Attachment,
+    Control,
+    Document,
+    Proposal,
+    QboSetting,
+    QboVendor,
+    Question,
+)
 from bob.qbo.client import NotConnected, QBOClient, QBOError, WritesDisabled
 from bob.storage import Storage
 
@@ -281,6 +289,13 @@ def _attach_document(
         audit.record(session, "qbo.attach_failed", "proposal", proposal.id, {"error": str(err)})
 
 
+def _close_questions(session: Session, proposal_id: int) -> None:
+    for q in session.scalars(
+        select(Question).where(Question.proposal_id == proposal_id, Question.status == "open")
+    ):
+        q.status = "closed"
+
+
 def approve(session: Session, proposal_id: int, actor: str) -> Proposal:
     """A person approves a held proposal. Validator rejections cannot be approved."""
     from bob import jobs
@@ -293,6 +308,7 @@ def approve(session: Session, proposal_id: int, actor: str) -> Proposal:
     proposal.status = "approved"
     proposal.approved_by = actor
     proposal.approved_at = utcnow()
+    _close_questions(session, proposal.id)
     audit.record(session, "proposal.approved", "proposal", proposal.id, actor=actor)
     jobs.enqueue(
         session,
@@ -309,6 +325,7 @@ def reject(session: Session, proposal_id: int, actor: str, reason: str) -> Propo
         raise ValueError(f"Proposal {proposal_id} cannot be rejected")
     proposal.status = "rejected"
     session.get(Document, proposal.document_id).status = "rejected"
+    _close_questions(session, proposal.id)
     audit.record(
         session, "proposal.rejected", "proposal", proposal.id, {"reason": reason}, actor=actor
     )

@@ -66,7 +66,11 @@ BOB_TEST_DATABASE_URL=postgresql+psycopg://user@localhost/bob_test pytest
    New-ManagementRoleAssignment -App <identityClientId> -Role "Application Mail.ReadWrite" -CustomResourceScope "Bob mailbox only"
    Test-ServicePrincipalAuthorization -Identity <identityClientId> -Resource bob@bridgewerk.ca
    ```
-   `Application Mail.Send` is added the same way when the reply loop is built.
+   Bob also sends its questions and daily digest from this mailbox, so add send rights the same way:
+   ```powershell
+   New-ManagementRoleAssignment -App <identityClientId> -Role "Application Mail.Send" -CustomResourceScope "Bob mailbox only"
+   ```
+   Set who receives them with the `reviewerAddresses` parameter (e.g. `-p reviewerAddresses='["oliver@bridgewerk.ca"]'`). Only replies from those addresses can approve anything.
 
 4. **Claude on Foundry.** Deploy a Claude model in the Foundry resource. Set `BOB_MODEL` to the deployment name if it differs from `claude-opus-5-5`. Give Bob's managed identity the role Foundry requires for Entra ID model calls on that resource (check Foundry's current docs; typically Azure AI User or Cognitive Services User):
    ```bash

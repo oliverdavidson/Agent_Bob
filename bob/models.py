@@ -252,3 +252,24 @@ class Control(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
+
+
+class Question(Base):
+    """A question Bob emailed to a reviewer. The token ("P42" for proposal 42, "D17" for
+    document 17) goes in the subject as [Bob P42] so replies find their way back."""
+
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(PK, primary_key=True)
+    token: Mapped[str] = mapped_column(String(16), index=True)
+    proposal_id: Mapped[int | None] = mapped_column(ForeignKey("proposals.id"))
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id"))
+    sent_to: Mapped[list] = mapped_column(JSON, default=list)
+    subject: Mapped[str] = mapped_column(Text)
+    body: Mapped[str] = mapped_column(Text)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # open | answered | closed (the item was resolved another way)
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    answer_email_id: Mapped[int | None] = mapped_column(ForeignKey("inbound_emails.id"))
+    answer_action: Mapped[str | None] = mapped_column(String(16))

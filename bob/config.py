@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     graph_client_id: str | None = None
     # Local development only. In Azure the app uses its managed identity.
     graph_client_secret: str | None = None
+    # Who receives Bob's questions and daily digest, and whose replies Bob acts on.
+    reviewer_addresses: list[str] = []
+    digest_hour_utc: int = 13  # 7:00 in Calgary during daylight time, 6:00 in winter
     mail_poll_seconds: int = 60
     processed_folder: str = "Processed"
 
@@ -39,6 +42,7 @@ class Settings(BaseSettings):
     model: str = "claude-opus-5-5"
     triage_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
     coding_effort: Literal["low", "medium", "high", "xhigh", "max"] = "high"
+    reply_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
 
     # QuickBooks Online. Writes stay off until the posting slice is built and tested.
     qbo_environment: Literal["sandbox", "production"] = "sandbox"

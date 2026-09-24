@@ -32,3 +32,9 @@ class MailSource(Protocol):
     def get_attachments(self, message_id: str) -> list[MailAttachment]: ...
 
     def mark_processed(self, message_id: str) -> None: ...
+
+
+class MailSender(Protocol):
+    """Sends mail as Bob. Graph in production (needs Mail.Send on Bob's mailbox)."""
+
+    def send(self, to: list[str], subject: str, body: str) -> None: ...

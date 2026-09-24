@@ -13,6 +13,9 @@ param foundryResource string
 
 param mailbox string = 'bob@bridgewerk.ca'
 
+@description('Who receives Bob\'s questions and daily digest, and whose replies Bob acts on.')
+param reviewerAddresses array = []
+
 param postgresAdminLogin string = 'bobadmin'
 @secure()
 param postgresAdminPassword string
@@ -193,6 +196,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'BOB_ENVIRONMENT', value: 'prod' }
             { name: 'BOB_DATABASE_URL', secretRef: 'database-url' }
             { name: 'BOB_MAILBOX', value: mailbox }
+            { name: 'BOB_REVIEWER_ADDRESSES', value: string(reviewerAddresses) }
             { name: 'BOB_BLOB_ACCOUNT_URL', value: storage.properties.primaryEndpoints.blob }
             { name: 'BOB_FOUNDRY_RESOURCE', value: foundryResource }
             // Tells DefaultAzureCredential which managed identity to use.

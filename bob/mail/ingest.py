@@ -14,11 +14,23 @@ from sqlalchemy.orm import Session, sessionmaker
 from bob import audit, jobs
 from bob.config import Settings
 from bob.mail.auth import check_sender
+from bob.mail.outbox import parse_token
 from bob.mail.source import MailMessage, MailSource
 from bob.models import Attachment, InboundEmail
 from bob.storage import Storage
 
 log = logging.getLogger(__name__)
+
+
+def is_reviewer_reply(email: InboundEmail, settings: Settings) -> bool:
+    """A reply Bob may act on: tokened subject, from a reviewer, internal and not spoofed."""
+    reviewers = {a.lower() for a in settings.reviewer_addresses}
+    return (
+        parse_token(email.subject) is not None
+        and email.sender_trust == "internal"
+        and email.sender_auth != "fail"
+        and email.sender_address.lower() in reviewers
+    )
 
 
 def _already_ingested(session: Session, msg: MailMessage) -> bool:
@@ -96,7 +108,14 @@ def ingest_message(
             "attachments": len(email.attachments),
         },
     )
-    jobs.enqueue(session, "triage_email", {"email_id": email.id}, dedupe_key=f"triage:{email.id}")
+    if is_reviewer_reply(email, settings):
+        jobs.enqueue(
+            session, "handle_reply", {"email_id": email.id}, dedupe_key=f"reply:{email.id}"
+        )
+    else:
+        jobs.enqueue(
+            session, "triage_email", {"email_id": email.id}, dedupe_key=f"triage:{email.id}"
+        )
     return email
 
 

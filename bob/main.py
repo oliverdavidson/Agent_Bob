@@ -13,9 +13,11 @@ from sqlalchemy import func, select, text
 from bob.accounting.posting import post_proposal
 from bob.agent.coding import code_document
 from bob.agent.llm import make_client
+from bob.agent.replies import handle_reply
 from bob.agent.triage import triage_email
 from bob.config import get_settings
 from bob.db import make_engine, make_sessionmaker
+from bob.mail.outbox import ask_questions, send_digest
 from bob.models import Document, InboundEmail, Job
 from bob.qbo.client import NotConnected, QBOClient
 from bob.qbo.sync import sync_reference_data
@@ -34,6 +36,7 @@ def build_worker() -> Worker:
 
     storage = make_storage(settings)
     client = make_client(settings)
+    mail = GraphMailSource(settings)
     handlers = {
         "triage_email": lambda session, p: triage_email(
             session, p["email_id"], client, storage, settings
@@ -41,8 +44,13 @@ def build_worker() -> Worker:
         "code_document": lambda session, p: code_document(
             session, p["document_id"], client, storage, settings
         ),
+        "handle_reply": lambda session, p: handle_reply(
+            session, p["email_id"], client, mail, settings
+        ),
+        "ask_questions": lambda session, p: ask_questions(session, mail, settings),
+        "send_digest": lambda session, p: send_digest(session, mail, settings),
     }
-    periodic = []
+    periodic = [(300, "ask_questions"), (3600, "send_digest")]
     if settings.qbo_client_id:
         qbo = QBOClient(SessionFactory, settings)
         handlers["qbo_sync"] = lambda session, p: _sync_qbo(session, qbo)
@@ -50,7 +58,7 @@ def build_worker() -> Worker:
             session, p["proposal_id"], qbo, storage, settings
         )
         periodic.append((settings.qbo_sync_hours * 3600, "qbo_sync"))
-    return Worker(SessionFactory, settings, GraphMailSource(settings), storage, handlers, periodic)
+    return Worker(SessionFactory, settings, mail, storage, handlers, periodic)
 
 
 def _sync_qbo(session, qbo: QBOClient) -> None:
