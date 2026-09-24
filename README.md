@@ -4,7 +4,7 @@ Bob is BridgeWerk's bookkeeping agent. People email documents to `bob@bridgewerk
 
 The plan, decisions and build order are in [docs/phase1-spec.md](docs/phase1-spec.md).
 
-To see how an email moves through the pipeline, open [docs/how-bob-works.html](docs/how-bob-works.html) in a browser. It animates six examples from the test sets: a routine bill, a held deal cost approved by reply, a statement, a duplicate, an unknown sender and a flagged new vendor.
+To see how an email moves through the pipeline, open [docs/how-bob-works.html](docs/how-bob-works.html) in a browser. Bob walks each of six examples from the test sets through the stations: a routine bill, a held deal cost approved by reply, a statement, a duplicate, an unknown sender and a flagged new vendor.
 
 **Current state:** the whole phase 1 pipeline is built and tested against simulated services: mailbox ingestion with sender verification, triage, coding with a second opinion, the validator, posting to QuickBooks (writes off by default), undo, reviewer questions answered by email reply, a daily digest, and the opening-balance import. It has not yet run against real Foundry, Graph or QuickBooks; see "Deploying to Azure" and docs/phase1-spec.md.
 

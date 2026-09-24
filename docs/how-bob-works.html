@@ -23,6 +23,7 @@
     --active-bg: #2A3D51;
     --active-fg: #F0E8E0;
     --token-bg: #FFFFFF;
+    --bob-line: #2A3D51;
     --claude-bg: #E8DFC9;
     --ok-bg: #DCE9DF;  --ok-fg: #2F5E3B;
     --hold-bg: #FBE0C8; --hold-fg: #8C3F0A;
@@ -36,7 +37,7 @@
       color-scheme: dark;
       --ground: #1C2938; --panel: #243546; --panel-2: #213142; --ink: #F0E8E0; --muted: #B8AFA7;
       --rule: #3B4F64; --rule-strong: #F0E8E0; --active-bg: #F0E8E0; --active-fg: #2A3D51;
-      --token-bg: #2F4459; --claude-bg: #4A4535;
+      --token-bg: #2F4459; --claude-bg: #4A4535; --bob-line: #F0E8E0;
       --ok-bg: #24452E; --ok-fg: #A9D3B2; --hold-bg: #4F3217; --hold-fg: #F7B77F;
       --err-bg: #4A2620; --err-fg: #EBA395; --neutral-bg: #34495E; --neutral-fg: #F0E8E0;
     }
@@ -45,7 +46,7 @@
     color-scheme: dark;
     --ground: #1C2938; --panel: #243546; --panel-2: #213142; --ink: #F0E8E0; --muted: #B8AFA7;
     --rule: #3B4F64; --rule-strong: #F0E8E0; --active-bg: #F0E8E0; --active-fg: #2A3D51;
-    --token-bg: #2F4459; --claude-bg: #4A4535;
+    --token-bg: #2F4459; --claude-bg: #4A4535; --bob-line: #F0E8E0;
     --ok-bg: #24452E; --ok-fg: #A9D3B2; --hold-bg: #4F3217; --hold-fg: #F7B77F;
     --err-bg: #4A2620; --err-fg: #EBA395; --neutral-bg: #34495E; --neutral-fg: #F0E8E0;
   }
@@ -121,13 +122,11 @@
   .station h3 { font-family: var(--serif); font-weight: 700; font-size: 17px; margin: 0; line-height: 1.2; }
   .station p { margin: 0; font-size: 13px; line-height: 1.4; }
   .station.visited { border-color: var(--rule-strong); }
-  .station.active { background: var(--active-bg); color: var(--active-fg); border-color: var(--active-bg); }
+  .station.active { background: var(--panel-2); border-color: var(--rule-strong); box-shadow: inset 0 0 0 1px var(--rule-strong); }
   .station.active::before { opacity: 1; }
-  .station.active .num { color: inherit; opacity: .75; }
-  .station.active .who { border-color: currentColor; }
   .station.active .who.claude { background: var(--accent); color: #2A3D51; }
 
-  .slot { height: 66px; margin-top: auto; }
+  .slot { height: 88px; margin-top: auto; }
   .bin {
     grid-column: var(--i); grid-row: 2;
     border: 1px dashed var(--rule); padding: 9px 12px 0; display: flex; flex-direction: column; gap: 2px;
@@ -156,24 +155,100 @@
   .mail .k { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .mail .v { overflow-wrap: anywhere; }
   .mail.idle { opacity: .45; }
-  .reviewer .slot { height: auto; min-height: 66px; margin: 0; align-self: stretch; }
+  .reviewer .slot { height: auto; min-height: 88px; margin: 0; align-self: stretch; }
 
-  /* the moving document */
-  .token, .ghost {
-    position: absolute; left: 0; top: 0; width: 150px; z-index: 3;
-    background: var(--token-bg); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px;
-    padding: 7px 9px 8px; display: grid; gap: 3px; font-size: 12px; line-height: 1.3;
-    transition: transform .9s cubic-bezier(.65, 0, .35, 1);
+  /* Bob, who walks the document from station to station */
+  .bob {
+    position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none;
+    display: flex; align-items: flex-end; gap: 6px;
+    transition-property: transform; transition-timing-function: linear; transition-duration: 0s;
     will-change: transform;
   }
-  .token::after {
-    content: ""; position: absolute; top: -1px; right: -1px; width: 12px; height: 12px;
-    background: linear-gradient(225deg, var(--ground) 50%, var(--rule-strong) 50%, var(--rule-strong) calc(50% + 1px), var(--token-bg) calc(50% + 1px));
+  .bob.twin { z-index: 2; opacity: 0; transition-property: transform, opacity; }
+  .bob.twin.show { opacity: .8; }
+  .bob.twin .tag { display: none; }
+  .bob.twin .fig { transform: scale(.85); transform-origin: 50% 100%; }
+  .fig { position: relative; width: 52px; height: 70px; flex: none; }
+  .fig svg { width: 100%; height: 100%; display: block; overflow: visible; transition: transform .2s; }
+  .bob.left .fig svg { transform: scaleX(-1); }
+
+  .fig .line { stroke: var(--bob-line); stroke-width: 1.4; }
+  .fig .head { fill: #F0E8E0; }
+  .fig .face { fill: #2A3D51; }
+  .fig .eyes circle, .fig .mouth { fill: #F0E8E0; }
+  .fig .mouth { fill: none; stroke: #F0E8E0; stroke-width: 1.4; stroke-linecap: round; }
+  .fig .visor, .fig .bulb { fill: #E3BD64; }
+  .fig .torso, .fig .limb { fill: #2A3D51; }
+  .fig .badge { fill: #E3BD64; font: 700 8px/1 var(--serif); }
+  .fig .paper rect { fill: #FFFFFF; }
+  .fig .paper path { stroke: #9AA6B2; stroke-width: 1; }
+  .fig .thought circle { fill: var(--muted); opacity: 0; }
+
+  .fig .arm, .fig .leg, .fig .eyes, .fig .headg {
+    transform-box: fill-box; transform-origin: 50% 8%; transition: transform .3s ease;
   }
-  .token .file { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
-  .token .amt { font-variant-numeric: tabular-nums; color: var(--muted); }
-  .ghost { z-index: 2; opacity: 0; transition: transform .9s cubic-bezier(.65, 0, .35, 1), opacity .5s; border-style: dashed; }
-  .ghost.show { opacity: 1; }
+  .fig .eyes { transform-origin: 50% 50%; animation: blink 4.5s infinite; }
+  .fig .headg { transform-origin: 50% 100%; }
+  @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+
+  .walking .leg-l { animation: stride .42s ease-in-out infinite alternate; }
+  .walking .leg-r { animation: stride .42s ease-in-out infinite alternate-reverse; }
+  .walking .arm-l { animation: swing .42s ease-in-out infinite alternate-reverse; }
+  .walking .body { animation: bounce .21s ease-in-out infinite alternate; }
+  @keyframes stride { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+  @keyframes swing { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+
+  .mood-think .arm-r { transform: rotate(-150deg); }
+  .mood-think .headg { transform: rotate(-6deg); }
+  .mood-think .thought circle { animation: think 1.2s infinite; }
+  .mood-think .thought circle:nth-child(2) { animation-delay: .2s; }
+  .mood-think .thought circle:nth-child(3) { animation-delay: .4s; }
+  @keyframes think { 0%, 100% { opacity: 0; } 40%, 70% { opacity: 1; } }
+
+  .mood-stamp .arm-r { animation: stampArm .7s ease-in 2; }
+  @keyframes stampArm { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(-135deg); } 70% { transform: rotate(-5deg); } }
+
+  .mood-cheer .arm-l { transform: rotate(150deg); }
+  .mood-cheer .arm-r { transform: rotate(-150deg); }
+  .mood-cheer .fig { animation: hop .45s ease-out 3; }
+  @keyframes hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-10px); } }
+
+  .mood-wave .arm-r { animation: wave 1.6s ease-in-out 1; }
+  @keyframes wave { 0%, 100% { transform: rotate(0); } 15%, 45%, 75% { transform: rotate(-155deg); } 30%, 60% { transform: rotate(-120deg); } }
+
+  .mood-shrug .arm-l { transform: rotate(55deg); }
+  .mood-shrug .arm-r { transform: rotate(-55deg); }
+  .mood-shrug .headg { transform: rotate(8deg); }
+
+  .tag {
+    position: relative; width: 104px; margin-bottom: 4px;
+    background: var(--token-bg); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px;
+    padding: 6px 8px 7px; display: grid; gap: 3px; font-size: 12px; line-height: 1.3;
+  }
+  .tag .file { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag .amt { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mark {
+    position: absolute; right: 4px; bottom: 5px; font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    padding: 1px 5px; border: 2px solid currentColor; border-radius: 3px; background: var(--token-bg);
+    transform: rotate(-10deg); opacity: 0;
+  }
+  .mark.ok { color: var(--ok-fg); } .mark.hold { color: var(--hold-fg); } .mark.flag { color: var(--ink); } .mark.plain { color: var(--muted); }
+  .mood-stamp .mark { animation: pop .3s .5s ease-out both; }
+  @keyframes pop { from { opacity: 0; transform: rotate(-10deg) scale(1.8); } to { opacity: 1; transform: rotate(-10deg) scale(1); } }
+
+  .bubble {
+    position: absolute; bottom: calc(100% + 10px); left: -4px; width: max-content; max-width: 200px;
+    background: var(--token-bg); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 10px;
+    padding: 5px 9px; font-size: 12.5px; line-height: 1.3;
+    opacity: 0; transform: translateY(4px); transition: opacity .25s, transform .25s;
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: var(--tail, 20px); top: 100%; width: 9px; height: 9px;
+    background: var(--token-bg); border-right: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong);
+    transform: translateY(-4px) rotate(45deg);
+  }
+  .bubble.show { opacity: 1; transform: none; }
 
   .pill { justify-self: start; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--neutral-bg); color: var(--neutral-fg); letter-spacing: .02em; }
   .pill.ok { background: var(--ok-bg); color: var(--ok-fg); }
@@ -240,13 +315,17 @@
       clip-path: polygon(40% 0, 60% 0, 60% 60%, 100% 60%, 50% 100%, 0 60%, 40% 60%);
     }
     .reviewer { grid-row: 6; grid-template-columns: 1fr; }
-    .reviewer .slot { min-height: 66px; }
-    .token, .ghost { width: 138px; }
+    .reviewer .slot { min-height: 88px; }
+    .fig { width: 44px; height: 60px; }
+    .tag { width: 92px; }
+    .bob { gap: 3px; }
     .story, .rules { grid-template-columns: 1fr; }
     .narration { min-height: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .token, .ghost, .station, .bin, .mail { transition: none; }
+    .bob, .station, .bin, .mail, .bubble, .fig svg, .fig .arm, .fig .leg, .fig .headg { transition: none !important; }
+    .fig *, .fig, .mark { animation: none !important; }
+    .mood-stamp .mark { opacity: 1; }
     .audit li.fresh { animation: none; }
   }
 </style>
@@ -260,7 +339,7 @@
   <section class="intro">
     <span class="eyebrow">bob@bridgewerk.ca</span>
     <h1>How Bob books an email</h1>
-    <p class="lede">Follow a document from Bob's inbox to QuickBooks. Claude reads and proposes at two stations. Plain code routes, checks and posts at the rest, so the model never has the last word.</p>
+    <p class="lede">Follow Bob as it carries a document from its inbox to QuickBooks. Claude reads and proposes at two stations. Plain code routes, checks and posts at the rest, so the model never has the last word.</p>
     <div class="legend">
       <span><span class="who claude">Claude</span> the model reads or proposes</span>
       <span><span class="who">Code</span> fixed rules decide</span>
@@ -311,8 +390,8 @@
       <div class="slot"></div>
     </div>
 
-    <div class="ghost" id="ghost" aria-hidden="true"><span class="file">Second reading</span><span class="amt">independent</span><span class="pill">compare</span></div>
-    <div class="token" id="token" aria-hidden="true"><span class="file" id="tFile"></span><span class="amt" id="tAmt"></span><span class="pill" id="tPill"></span></div>
+    <div class="bob twin" id="twin" aria-hidden="true"></div>
+    <div class="bob" id="bob" aria-hidden="true"></div>
   </section>
 
   <section class="controls" aria-label="Playback">
@@ -392,23 +471,23 @@
       id: "routine", label: "Northwind NW-10388", sub: "Known vendor, routine bill",
       file: "northwind-nw10388.pdf", amount: "CAD 1,260.00",
       steps: [
-        { at: "mailbox", pill: ["received"], title: "Bob picks up the email",
+        { at: "mailbox", pill: ["received"], mood: "wave", say: "New mail! The sender checks out.", title: "Bob picks up the email",
           body: "Bob checks bob@bridgewerk.ca every minute. It saves the email and the PDF, filed under the file's SHA-256 fingerprint, and checks the sender: SPF, DKIM and DMARC pass, and northwindcloud.ca is a known supplier. The email is saved before it moves to Processed, so a crash can only cause a harmless re-read.",
           facts: [["from", "billing@northwindcloud.ca"], ["trust", "known"], ["auth", "pass", "ok"], ["attachments", "1"]],
           events: [["email.received", "trust known · auth pass"]], src: "bob/mail/ingest.py" },
-        { at: "triage", pill: ["ready_to_code"], title: "Claude says what it is",
+        { at: "triage", pill: ["ready_to_code"], mood: "think", say: "Claude says it's a vendor invoice.", title: "Claude says what it is",
           body: "Claude reads the email and the PDF and returns one item per attachment: a vendor invoice from Northwind Cloud Software. Code, not Claude, picks the route. An invoice from a known sender goes to coding.",
           facts: [["type", "vendor_invoice"], ["counterparty", "Northwind Cloud Software Inc."], ["route", "ready_to_code"]],
           events: [["email.triaged", "vendor_invoice → ready_to_code"]], src: "bob/agent/triage.py" },
-        { at: "code", pill: ["proposing"], title: "Claude proposes the booking",
+        { at: "code", pill: ["proposing"], mood: "think", say: "Claude is drafting the bill.", title: "Claude proposes the booking",
           body: "Claude drafts a bill using only accounts, vendors and tax codes that exist in the QuickBooks company, guided by the written coding policy and past bills from this vendor. Northwind has history and nothing is tagged, so one reading is enough.",
           facts: [["kind", "Bill"], ["vendor", "Northwind (QBO 17)"], ["account", "60 Software and Subscriptions"], ["tax", "GST 5%"], ["subtotal", "1,200.00"], ["GST", "60.00"], ["total", "1,260.00"]],
           src: "bob/agent/coding.py" },
-        { at: "validate", pill: ["approved", "ok"], title: "Code checks every number",
+        { at: "validate", pill: ["approved", "ok"], mood: "stamp", say: "It all adds up. Approved.", stamp: ["OK", "ok"], title: "Code checks every number",
           body: "The validator re-adds the lines, recomputes the GST, confirms every id exists in QuickBooks, looks for the same vendor and invoice number, and checks the date against the closing date and the amount against the $25,000 materiality line. Nothing turns up, so the entry is approved by rule.",
           facts: [["arithmetic", "ok", "ok"], ["GST", "ok", "ok"], ["ids", "ok", "ok"], ["duplicate", "none", "ok"], ["closing date", "ok", "ok"], ["materiality", "under", "ok"], ["approved by", "rule"]],
           events: [["proposal.created", "P41 · outcome post · approved by rule"]], src: "bob/accounting/validate.py" },
-        { at: "post", pill: ["posted", "ok"], title: "Posted to QuickBooks",
+        { at: "post", pill: ["posted", "ok"], mood: "cheer", say: "Booked as bob-41!", title: "Posted to QuickBooks",
           body: "Before writing, Bob checks the kill switch and the daily cap for rule-approved entries, then validates once more against fresh QuickBooks data. The bill is created with request id bob-41, so a retry can never make a second copy, and the PDF is attached. It appears in the daily digest, and one command can undo it.",
           facts: [["kill switch", "off", "ok"], ["daily cap", "1 of 25", "ok"], ["re-validated", "yes", "ok"], ["request id", "bob-41"]],
           events: [["proposal.posted", "Bill · bob-41"], ["qbo.attached", "northwind-nw10388.pdf"]], src: "bob/accounting/posting.py" }
@@ -418,32 +497,32 @@
       id: "falcon", label: "Harrow & Pike HP-2310", sub: "Deal cost over materiality",
       file: "harrow-hp2310.pdf", amount: "CAD 27,037.50",
       steps: [
-        { at: "mailbox", pill: ["received"], title: "A legal bill for Project Falcon",
+        { at: "mailbox", pill: ["received"], mood: "wave", say: "From Harrow & Pike. Looks normal.", title: "A legal bill for Project Falcon",
           body: "Harrow & Pike's account arrives from a known address and passes the sender checks, like any routine bill. Nothing about it looks unusual yet.",
           facts: [["from", "accounts@harrowpike.ca"], ["trust", "known"], ["auth", "pass", "ok"]],
           events: [["email.received", "trust known · auth pass"]], src: "bob/mail/ingest.py" },
-        { at: "triage", pill: ["ready_to_code"], title: "Claude classifies it as an invoice",
+        { at: "triage", pill: ["ready_to_code"], mood: "think", say: "Claude says it's an invoice.", title: "Claude classifies it as an invoice",
           body: "A vendor invoice from Harrow & Pike LLP, from a known sender, so code sends it to coding.",
           facts: [["type", "vendor_invoice"], ["route", "ready_to_code"]],
           events: [["email.triaged", "vendor_invoice → ready_to_code"]], src: "bob/agent/triage.py" },
-        { at: "code", pill: ["proposing"], ghost: true, title: "Claude codes it, twice",
+        { at: "code", pill: ["proposing"], ghost: true, mood: "think", say: "A deal cost? Let's read it twice.", twinSay: "Second reading: same answer.", title: "Claude codes it, twice",
           body: "The matter note reads Project Falcon, the acquisition of Aurora Pipeline Services. Following the coding policy, Claude books it to Deal Costs and tags it acquisition-related. A hold tag triggers a second, independent reading. Both agree on the kind, total, accounts, tax codes and tags. Had they differed, the item would be held with both answers.",
           facts: [["account", "65 Deal Costs"], ["tag", "acquisition_related"], ["subtotal", "25,750.00"], ["GST", "1,287.50"], ["second reading", "agrees", "ok"]],
           src: "bob/agent/coding.py" },
-        { at: "bin-validate", lit: "validate", pill: ["held", "hold"], title: "Code holds it for a person",
+        { at: "bin-validate", lit: "validate", pill: ["held", "hold"], mood: "stamp", say: "Over $25,000 and a deal cost. Not my call.", stamp: ["HOLD", "hold"], title: "Code holds it for a person",
           body: "Two findings are at hold level: the acquisition-related tag, and a total of $27,037.50, above the $25,000 materiality line. A held item never posts by itself.",
           facts: [["tag_acquisition_related", "hold", "hold"], ["material_amount", "hold", "hold"], ["arithmetic", "ok", "ok"], ["duplicate", "none", "ok"]],
           events: [["proposal.created", "P42 · outcome hold"]], src: "bob/accounting/validate.py" },
         { at: "reviewer", pill: ["question sent", "hold"], mail: "[Bob P42] Harrow & Pike LLP CAD 27,037.50: Tagged acquisition related; at or above the 25,000 threshold. Post it?",
-          title: "Bob asks one question by email",
+          mood: "wave", say: "Emailing the reviewers.", title: "Bob asks one question by email",
           body: "Bob emails the reviewers, and only the reviewers. It never writes to vendors. The subject carries a token, P42, that ties any reply to this exact proposal.",
           facts: [["to", "reviewers only"], ["token", "P42"]],
           events: [["question.sent", "P42 → reviewers"]], src: "bob/mail/outbox.py" },
-        { at: "mailbox", pill: ["reply"], reply: "approve", title: "The reply comes back through the inbox",
+        { at: "mailbox", pill: ["reply"], reply: "approve", mood: "cheer", say: "Oliver says approve!", title: "The reply comes back through the inbox",
           body: "Oliver replies “approve”. Bob acts on a reply only if the subject has a token, the sender is on the reviewer list and on bridgewerk.ca, and authentication did not fail. It skips triage and goes to the reply handler. A plain “approve” is matched without the model; a longer reply such as “code it to Legal Fees” is read by Claude into a change and validated again.",
           facts: [["token", "P42", "ok"], ["sender", "reviewer, internal", "ok"], ["route", "handle_reply"]],
           events: [["email.received", "reviewer reply · P42"], ["reply.handled", "approve"], ["proposal.approved", "P42 · by oliver@bridgewerk.ca"]], src: "bob/agent/replies.py" },
-        { at: "post", pill: ["posted", "ok"], title: "Posted with a person's approval",
+        { at: "post", pill: ["posted", "ok"], mood: "cheer", say: "Posted as bob-42.", title: "Posted with a person's approval",
           body: "A person's approval lifts the daily cap, but not the kill switch or the fresh re-validation against QuickBooks. The bill posts with request id bob-42 and the invoice attached.",
           facts: [["kill switch", "off", "ok"], ["daily cap", "bypassed"], ["re-validated", "yes", "ok"], ["request id", "bob-42"]],
           events: [["proposal.posted", "Bill · bob-42"], ["qbo.attached", "harrow-hp2310.pdf"]], src: "bob/accounting/posting.py" }
@@ -453,15 +532,15 @@
       id: "statement", label: "Bow River statement", sub: "Evidence, never posted",
       file: "bowriver-statement-sep.pdf", amount: "Balance 189.00",
       steps: [
-        { at: "mailbox", pill: ["received"], title: "A supplier statement arrives",
+        { at: "mailbox", pill: ["received"], mood: "wave", say: "A statement from Bow River.", title: "A supplier statement arrives",
           body: "Bow River Office Supply sends its September statement. It lists two invoices, a payment received, and a balance due of $189.00.",
           facts: [["from", "ar@bowriveroffice.ca"], ["trust", "known"], ["auth", "pass", "ok"]],
           events: [["email.received", "trust known · auth pass"]], src: "bob/mail/ingest.py" },
-        { at: "triage", pill: ["evidence"], title: "Claude recognises a statement",
+        { at: "triage", pill: ["evidence"], mood: "think", say: "Claude says it's a statement.", title: "Claude recognises a statement",
           body: "Claude classifies it as a vendor statement. Code routes statements, remittances and bank statements to evidence. The invoices on a statement are booked from the invoices themselves, so posting the statement would count them twice.",
           facts: [["type", "vendor_statement"], ["route", "evidence"]],
           events: [["email.triaged", "vendor_statement → evidence"]], src: "bob/agent/triage.py" },
-        { at: "bin-triage", pill: ["evidence"], title: "Kept, never posted",
+        { at: "bin-triage", pill: ["evidence"], mood: "stamp", say: "Filed as evidence. Never posted.", stamp: ["FILED", "plain"], title: "Kept, never posted",
           body: "The statement stays on file with the email for matching and controls. No coding job is queued, so it can never reach QuickBooks.",
           facts: [["coding job", "none"], ["posted", "never"]], src: "bob/agent/triage.py" }
       ]
@@ -470,11 +549,11 @@
       id: "duplicate", label: "NW-10388, forwarded again", sub: "Byte-identical duplicate",
       file: "northwind-nw10388.pdf", amount: "Fwd: did this get booked?",
       steps: [
-        { at: "mailbox", pill: ["received"], title: "Oliver forwards the same invoice",
+        { at: "mailbox", pill: ["received"], mood: "think", say: "Hang on, I've seen this file before.", title: "Oliver forwards the same invoice",
           body: "The email asks “Did this one get booked?”. Bob hashes the attached PDF and gets the same SHA-256 fingerprint as the Northwind invoice that arrived earlier, so the file is marked as a copy of the original.",
           facts: [["from", "oliver@bridgewerk.ca"], ["trust", "internal"], ["sha256", "matches attachment 1", "hold"]],
           events: [["email.received", "1 attachment · duplicate of 1"]], src: "bob/mail/ingest.py" },
-        { at: "bin-mailbox", pill: ["duplicate"], title: "The copy never reaches Claude",
+        { at: "bin-mailbox", pill: ["duplicate"], mood: "stamp", say: "Same fingerprint. Skipping it.", stamp: ["COPY", "plain"], title: "The copy never reaches Claude",
           body: "Triage records the file as a duplicate and does not send it to the model. The original bill stays the only booking. Files that differ but repeat the same vendor and invoice number are caught later by the validator.",
           facts: [["status", "duplicate"], ["sent to model", "no"]],
           events: [["email.triaged", "duplicate · not classified"]], src: "bob/agent/triage.py" }
@@ -484,16 +563,16 @@
       id: "stranger", label: "Apex Strategy 2026-114", sub: "Unknown sender",
       file: "apex-2026-114.pdf", amount: "Due in 7 days, by wire",
       steps: [
-        { at: "mailbox", pill: ["received"], title: "An overdue invoice from a stranger",
+        { at: "mailbox", pill: ["received"], mood: "shrug", say: "Never heard of this sender.", title: "An overdue invoice from a stranger",
           body: "accounts@apexstrategy.biz has never written before. The email asks for payment this week and the invoice gives wire details. Bob records the sender's trust as unknown.",
           facts: [["from", "accounts@apexstrategy.biz"], ["trust", "unknown", "hold"]],
           events: [["email.received", "trust unknown"]], src: "bob/mail/auth.py" },
-        { at: "triage", pill: ["needs_human", "hold"], title: "Claude reads an invoice; code overrules",
+        { at: "triage", pill: ["needs_human", "hold"], mood: "shrug", say: "Claude says invoice, but who sent it?", title: "Claude reads an invoice; code overrules",
           body: "Claude classifies it as a vendor invoice. Code has a fixed rule: postable documents from unknown or suspicious senders go to a person, whatever the model says.",
           facts: [["type", "vendor_invoice"], ["route", "ready_to_code → needs_human", "hold"]],
           events: [["email.triaged", "vendor_invoice → needs_human"]], src: "bob/agent/triage.py" },
         { at: "reviewer", pill: ["question sent", "hold"], mail: "[Bob D17] Apex Strategy Partners: This came from an unknown sender (accounts@apexstrategy.biz). Is it genuine?",
-          title: "Bob asks whether it is genuine",
+          mood: "shrug", say: "Is this genuine? Asking a person.", title: "Bob asks whether it is genuine",
           body: "The reviewers get one email. Nothing is coded or posted until someone answers. Bob never makes payments, so the wire request goes nowhere.",
           facts: [["coded", "no"], ["payments", "never"]],
           events: [["question.sent", "D17 → reviewers"]], src: "bob/mail/outbox.py" }
@@ -503,27 +582,27 @@
       id: "receipt", label: "Deskworks order 77120", sub: "New vendor, flagged",
       file: "deskworks-order-77120.pdf", amount: "CAD 533.40",
       steps: [
-        { at: "mailbox", pill: ["received"], title: "A card receipt, forwarded by staff",
+        { at: "mailbox", pill: ["received"], mood: "wave", say: "A receipt from Oliver.", title: "A card receipt, forwarded by staff",
           body: "Oliver forwards a Deskworks receipt for a monitor arm and a docking station, already paid on the company Visa. Internal senders are trusted.",
           facts: [["from", "oliver@bridgewerk.ca"], ["trust", "internal", "ok"]],
           events: [["email.received", "trust internal"]], src: "bob/mail/ingest.py" },
-        { at: "triage", pill: ["ready_to_code"], title: "A receipt goes to coding",
+        { at: "triage", pill: ["ready_to_code"], mood: "think", say: "Claude says it's a receipt.", title: "A receipt goes to coding",
           body: "Claude classifies it as a receipt, one of the three postable types along with vendor invoices and credit notes.",
           facts: [["type", "receipt"], ["route", "ready_to_code"]],
           events: [["email.triaged", "receipt → ready_to_code"]], src: "bob/agent/triage.py" },
-        { at: "code", pill: ["proposing"], ghost: true, title: "A new vendor, so two readings",
+        { at: "code", pill: ["proposing"], ghost: true, mood: "think", say: "New vendor. Reading it twice.", twinSay: "Second reading: same answer.", title: "A new vendor, so two readings",
           body: "Claude books a card purchase to Computer Equipment Expense with GST. Deskworks is not yet a QuickBooks vendor, which triggers a second, independent reading. The two agree.",
           facts: [["kind", "card purchase"], ["account", "68 Computer Equipment Expense"], ["subtotal", "508.00"], ["GST", "25.40"], ["vendor", "new"], ["second reading", "agrees", "ok"]],
           src: "bob/agent/coding.py" },
-        { at: "validate", pill: ["approved", "ok"], title: "Code flags it and lets it through",
+        { at: "validate", pill: ["approved", "ok"], mood: "stamp", say: "One flag: new vendor. Still fine to post.", stamp: ["FLAG", "flag"], title: "Code flags it and lets it through",
           body: "One finding, new_vendor, at flag level. A flag does not stop posting: the entry is approved by rule and goes on the confirm-before-close list.",
           facts: [["new_vendor", "flag"], ["arithmetic", "ok", "ok"], ["GST", "ok", "ok"], ["materiality", "under", "ok"]],
           events: [["proposal.created", "P43 · outcome post_and_flag"]], src: "bob/accounting/validate.py" },
-        { at: "post", pill: ["posted", "ok"], title: "Posted, with the vendor created",
+        { at: "post", pill: ["posted", "ok"], mood: "cheer", say: "Posted, and the vendor is set up.", title: "Posted, with the vendor created",
           body: "Bob creates the Deskworks vendor, posts the purchase against the company card account and attaches the receipt. Receipts wait until that account is set in BOB_EXPENSE_PAYMENT_ACCOUNT_ID.",
           facts: [["vendor", "created"], ["request id", "bob-43"], ["daily cap", "2 of 25", "ok"]],
           events: [["qbo.vendor_created", "Deskworks Online Ltd."], ["proposal.posted", "Purchase · bob-43"]], src: "bob/accounting/posting.py" },
-        { at: "bin-post", pill: ["posted · flagged", "flag"], title: "On the confirm-before-close list",
+        { at: "bin-post", pill: ["posted · flagged", "flag"], mood: "wave", say: "On the list to confirm before close.", title: "On the confirm-before-close list",
           body: "The entry is already in the books. A person confirms flagged entries before the month is closed, and the daily digest lists them until then.",
           facts: [["listed in", "daily digest"]], src: "bob/mail/outbox.py" }
       ]
@@ -531,17 +610,45 @@
   ];
 
   var STEP_MS = 5200;
+  var WALK_PX_PER_MS = 0.24;
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var $ = function (id) { return document.getElementById(id); };
-  var stage = $("stage"), token = $("token"), ghost = $("ghost");
-  var state = { s: 0, i: 0, playing: !reduce, timer: null, lastEvents: 0 };
+  var stage = $("stage"), bob = $("bob"), twin = $("twin");
+  var state = { s: 0, i: 0, playing: !reduce, timer: null, lastEvents: 0, shown: null, seq: 0, walkMs: 0 };
+  var MOODS = ["mood-think", "mood-stamp", "mood-cheer", "mood-shrug", "mood-wave"];
 
   function scenario() { return SCENARIOS[state.s]; }
 
   function esc(t) {
     return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
   }
+
+  // Bob himself: a small robot bookkeeper with a gold visor, carrying the document
+  function figure() {
+    var limb = function (x) { return '<rect class="limb line" x="' + x + '" y="32" width="5" height="16" rx="2.5"/>'; };
+    return '<div class="bubble"></div><div class="fig"><svg viewBox="0 0 52 70" focusable="false">' +
+      '<g class="leg leg-l"><rect class="limb line" x="18" y="50" width="6" height="15" rx="3"/><ellipse class="limb line" cx="20" cy="66" rx="4.5" ry="2.6"/></g>' +
+      '<g class="leg leg-r"><rect class="limb line" x="28" y="50" width="6" height="15" rx="3"/><ellipse class="limb line" cx="32" cy="66" rx="4.5" ry="2.6"/></g>' +
+      '<g class="body">' +
+        '<g class="arm arm-l">' + limb(8.5) + '</g>' +
+        '<rect class="torso line" x="13" y="30" width="26" height="22" rx="6"/>' +
+        '<g class="headg">' +
+          '<path class="line" d="M26 8V4" fill="none"/><circle class="bulb line" cx="26" cy="3" r="2.4"/>' +
+          '<rect class="head line" x="11" y="8" width="30" height="22" rx="7"/>' +
+          '<rect class="face" x="15" y="16" width="22" height="11" rx="4"/>' +
+          '<g class="eyes"><circle cx="21" cy="21" r="1.9"/><circle cx="31" cy="21" r="1.9"/></g>' +
+          '<path class="mouth" d="M23.5 24.2 Q26 26 28.5 24.2"/>' +
+          '<path class="visor line" d="M8 14 Q26 3 44 14 L42 17 Q26 9 10 17 Z"/>' +
+        '</g>' +
+        '<g class="thought"><circle cx="44" cy="5" r="1.6"/><circle cx="48" cy="0" r="2"/><circle cx="53" cy="-6" r="2.6"/></g>' +
+        '<g class="paper"><rect class="line" x="18" y="36" width="16" height="19" rx="1"/><path d="M21 41h10M21 44.5h10M21 48h7"/></g>' +
+        '<g class="arm arm-r">' + limb(38.5) + '</g>' +
+      '</g></svg></div>';
+  }
+  bob.innerHTML = figure() + '<div class="tag"><span class="file"></span><span class="amt"></span><span class="pill"></span><span class="mark"></span></div>';
+  twin.innerHTML = figure();
+  var q = function (el, sel) { return el.querySelector(sel); };
 
   // chips
   var chips = $("chips");
@@ -553,20 +660,87 @@
     chips.appendChild(b);
   });
 
-  function place(el, node, dx, dy, animate) {
+  // Walk an element to a node's slot. Returns how long the walk takes, in ms.
+  function walkTo(el, node, dx, animate, dy) {
     var host = stage.querySelector('[data-node="' + node + '"] .slot');
-    if (!host) return;
+    if (!host) return 0;
     var sr = stage.getBoundingClientRect(), hr = host.getBoundingClientRect();
-    var x = hr.left - sr.left + (hr.width - el.offsetWidth) / 2 + (dx || 0);
-    var y = hr.top - sr.top + (hr.height - el.offsetHeight) / 2 + (dy || 0);
-    if (!animate) el.style.transition = "none";
-    el.style.transform = "translate(" + Math.round(x) + "px," + Math.round(y) + "px)";
-    if (!animate) { void el.offsetWidth; el.style.transition = ""; }
+    var x = Math.round(hr.left - sr.left + (hr.width - el.offsetWidth) / 2 + (dx || 0));
+    var y = Math.round(hr.top - sr.top + (hr.height - el.offsetHeight) / 2 + 4 + (dy || 0));
+    var prev = el._pos, dur = 0;
+    if (animate && prev) {
+      var dist = Math.hypot(x - prev.x, y - prev.y);
+      if (dist > 2) dur = Math.round(Math.max(450, Math.min(2600, dist / WALK_PX_PER_MS)));
+      if (x < prev.x - 2) el.classList.add("left");
+      if (x > prev.x + 2) el.classList.remove("left");
+    } else {
+      el.classList.remove("left");
+    }
+    el.style.transitionDuration = dur + "ms";
+    el.classList.toggle("walking", dur > 0);
+    el.style.transform = "translate(" + x + "px," + y + "px)";
+    if (!dur) void el.offsetWidth;
+    el._pos = { x: x, y: y };
+    clearTimeout(el._walkT);
+    if (dur) el._walkT = setTimeout(function () { el.classList.remove("walking"); }, dur);
+    return dur;
+  }
+
+  function say(el, text) {
+    var b = q(el, ".bubble");
+    b.textContent = text || "";
+    b.style.left = ""; b.style.removeProperty("--tail");
+    if (!text) { b.classList.remove("show"); return; }
+    b.classList.add("show");
+    var sr = stage.getBoundingClientRect(), br = b.getBoundingClientRect();
+    var shift = Math.max(0, br.right - sr.right + 2) - Math.max(0, sr.left - br.left);
+    if (shift) { b.style.left = (-4 - shift) + "px"; b.style.setProperty("--tail", (20 + shift) + "px"); }
+    clearTimeout(el._sayT);
+    if (!reduce) el._sayT = setTimeout(function () { b.classList.remove("show"); }, 3400);
+  }
+
+  function moveBob(st, animate) {
+    var seq = ++state.seq, sc = scenario();
+    MOODS.forEach(function (m) { bob.classList.remove(m); twin.classList.remove(m); });
+    q(bob, ".bubble").classList.remove("show");
+    q(twin, ".bubble").classList.remove("show");
+    twin.classList.remove("show");
+    q(bob, ".file").textContent = sc.file;
+    q(bob, ".amt").textContent = sc.amount;
+    var dur = walkTo(bob, st.at, 0, animate);
+    if (!st.ghost) walkTo(twin, st.at, 0, false);
+
+    setTimeout(function () {
+      if (seq !== state.seq) return;
+      var pill = q(bob, ".pill");
+      pill.textContent = st.pill[0];
+      pill.className = "pill" + (st.pill[1] ? " " + st.pill[1] : "");
+      var mark = q(bob, ".mark");
+      mark.textContent = st.stamp ? st.stamp[0] : "";
+      mark.className = "mark " + (st.stamp ? st.stamp[1] : "");
+      if (st.mood) { void bob.offsetWidth; bob.classList.add("mood-" + st.mood); }
+      say(bob, st.say);
+      if (st.ghost) {
+        // the second, independent reading: a twin walks in from behind
+        var behind = -bob.offsetWidth / 2 + 2;
+        walkTo(twin, st.at, behind - 50, false, -8);
+        twin.classList.add("show");
+        var tw = walkTo(twin, st.at, behind, !reduce, -8);
+        setTimeout(function () {
+          if (seq !== state.seq) return;
+          twin.classList.add("mood-think");
+          if (!reduce) q(bob, ".bubble").classList.remove("show");
+          say(twin, st.twinSay);
+        }, reduce ? 0 : Math.max(tw, 2200));
+      }
+    }, dur);
+    return dur;
   }
 
   function render(animate) {
     var sc = scenario(), steps = sc.steps, st = steps[state.i];
-    var anim = animate && !reduce;
+    var key = state.s + ":" + state.i, sameStep = key === state.shown;
+    state.shown = key;
 
     // chips
     SCENARIOS.forEach(function (x, n) { $("chip-" + x.id).setAttribute("aria-pressed", n === state.s ? "true" : "false"); });
@@ -588,24 +762,12 @@
     $("mailQText").textContent = mail || "One email per item that needs a person.";
     $("mailRText").textContent = reply ? "“" + reply + "” from oliver@bridgewerk.ca" : "approve · reject: reason · or say what to change";
 
-    // token
-    $("tFile").textContent = sc.file;
-    $("tAmt").textContent = sc.amount;
-    var pill = $("tPill");
-    pill.textContent = st.pill[0];
-    pill.className = "pill" + (st.pill[1] ? " " + st.pill[1] : "");
-    place(token, st.at, 0, 0, anim);
-    if (st.ghost) {
-      place(ghost, st.at, 0, 0, false);
-      ghost.classList.remove("show");
-      setTimeout(function () {
-        if (scenario().steps[state.i] !== st) return;
-        ghost.classList.add("show");
-        place(ghost, st.at, 10, 10, !reduce);
-      }, anim ? 700 : 0);
+    // Bob: a new step walks; the same step (resize, pause) just keeps him in place
+    if (sameStep) {
+      walkTo(bob, st.at, 0, false);
+      if (st.ghost) walkTo(twin, st.at, -bob.offsetWidth / 2 + 2, false, -8); else walkTo(twin, st.at, 0, false);
     } else {
-      ghost.classList.remove("show");
-      place(ghost, st.at, 0, 0, anim);
+      state.walkMs = moveBob(st, animate && !reduce);
     }
 
     // narration
@@ -643,11 +805,11 @@
     state.timer = setTimeout(function () {
       if (state.i < scenario().steps.length - 1) { state.i++; render(true); schedule(); }
       else { state.playing = false; render(false); }
-    }, STEP_MS);
+    }, STEP_MS + state.walkMs);
   }
 
   function pick(n, user) {
-    state.s = n; state.i = 0; state.lastEvents = 0;
+    state.s = n; state.i = 0; state.lastEvents = 0; state.shown = null;
     if (user) state.playing = !reduce;
     try { history.replaceState(null, "", "#" + SCENARIOS[n].id); } catch (e) {}
     render(false); schedule();
@@ -665,7 +827,7 @@
   $("back").addEventListener("click", function () { go(-1); });
   $("play").addEventListener("click", function () {
     if (state.playing) { state.playing = false; clearTimeout(state.timer); render(false); return; }
-    if (state.i === scenario().steps.length - 1) { state.i = 0; state.lastEvents = 0; render(false); }
+    if (state.i === scenario().steps.length - 1) { state.i = 0; state.lastEvents = 0; render(true); }
     state.playing = true; render(false); schedule();
   });
   $("dots").addEventListener("click", function (e) {
