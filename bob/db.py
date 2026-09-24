@@ -34,3 +34,8 @@ def session_scope(factory: sessionmaker[Session]) -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+
+def as_utc(value: datetime) -> datetime:
+    """SQLite returns naive datetimes; everything Bob stores is UTC."""
+    return value if value.tzinfo else value.replace(tzinfo=UTC)

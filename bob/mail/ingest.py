@@ -13,21 +13,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from bob import audit, jobs
 from bob.config import Settings
+from bob.mail.auth import check_sender
 from bob.mail.source import MailMessage, MailSource
 from bob.models import Attachment, InboundEmail
 from bob.storage import Storage
 
 log = logging.getLogger(__name__)
-
-
-def sender_trust(address: str, settings: Settings) -> str:
-    address = address.lower()
-    domain = address.rsplit("@", 1)[-1]
-    if domain in {d.lower() for d in settings.internal_domains}:
-        return "internal"
-    if address in {a.lower() for a in settings.known_sender_addresses}:
-        return "known"
-    return "unknown"
 
 
 def _already_ingested(session: Session, msg: MailMessage) -> bool:
@@ -52,13 +43,16 @@ def ingest_message(
     if _already_ingested(session, msg):
         return None
 
+    sender = check_sender(msg.sender_address, msg.headers, settings)
     email = InboundEmail(
         graph_message_id=msg.id,
         internet_message_id=msg.internet_message_id,
         conversation_id=msg.conversation_id,
         sender_address=msg.sender_address,
         sender_name=msg.sender_name,
-        sender_trust=sender_trust(msg.sender_address, settings),
+        sender_trust=sender.trust,
+        sender_auth=sender.auth,
+        sender_auth_detail=sender.detail,
         subject=msg.subject,
         body_text=msg.body_text,
         received_at=msg.received_at,
@@ -96,6 +90,8 @@ def ingest_message(
         {
             "from": email.sender_address,
             "trust": email.sender_trust,
+            "auth": email.sender_auth,
+            "reason": sender.reason,
             "subject": email.subject,
             "attachments": len(email.attachments),
         },

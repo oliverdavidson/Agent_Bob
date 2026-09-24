@@ -87,7 +87,7 @@ def test_duplicate_file_skips_the_model(factory, storage, settings):
 
 
 def test_unknown_sender_cannot_go_straight_to_coding(factory, storage, settings):
-    email_id = ingest(factory, storage, settings, sender="ap@lookalike-vendor.co")
+    email_id = ingest(factory, storage, settings, sender="ap@unrelated-supplier.ca")
     claude = FakeClaude(TriageResult(items=[item(0, "vendor_invoice")]))
 
     _, docs = run(factory, storage, settings, email_id, claude)
@@ -126,3 +126,16 @@ def test_retried_job_does_not_triage_twice(factory, storage, settings):
     run(factory, storage, settings, email_id, claude)
     run(factory, storage, settings, email_id, claude)
     assert len(claude.calls) == 1
+
+
+def test_lookalike_sender_goes_to_a_person_with_the_reason(factory, storage, settings):
+    email_id = ingest(factory, storage, settings, sender="billing@vend0r.com")
+    claude = FakeClaude(TriageResult(items=[item(0, "vendor_invoice")]))
+
+    _, docs = run(factory, storage, settings, email_id, claude)
+
+    assert docs == [("vendor_invoice", "needs_human")]
+    with factory() as s:
+        assert "looks like vendor.com" in s.scalars(select(Document)).one().question
+    header = claude.calls[0]["messages"][0]["content"][0]["text"]
+    assert "Sender trust: suspicious" in header

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
 
@@ -13,6 +13,8 @@ class MailMessage:
     subject: str
     body_text: str
     received_at: datetime
+    # Internet message headers in order, e.g. [("Authentication-Results", "spf=pass ...")].
+    headers: list[tuple[str, str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

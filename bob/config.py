@@ -3,6 +3,7 @@
 List values are JSON in the environment, e.g. BOB_INTERNAL_DOMAINS='["bridgewerk.ca"]'.
 """
 
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
@@ -40,7 +41,17 @@ class Settings(BaseSettings):
 
     # QuickBooks Online. Writes stay off until the posting slice is built and tested.
     qbo_environment: Literal["sandbox", "production"] = "sandbox"
+    qbo_client_id: str | None = None
+    qbo_client_secret: str | None = None
+    # Must match a redirect URI registered on the Intuit app. Nothing needs to be listening
+    # there: the connect command asks you to paste the URL the browser lands on.
+    qbo_redirect_uri: str = "http://localhost:8765/qbo/callback"
+    qbo_minor_version: int = 75
     qbo_writes_enabled: bool = False
+    qbo_sync_hours: int = 6
+
+    # Accounting policy. Placeholder until agreed with the accountant.
+    materiality: Decimal = Decimal(25000)
 
 
 @lru_cache

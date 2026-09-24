@@ -31,12 +31,15 @@ class Worker:
         mail: MailSource,
         storage: Storage,
         handlers: dict[str, Handler],
+        periodic: list[tuple[int, str]] | None = None,
     ):
         self.factory = factory
         self.settings = settings
         self.mail = mail
         self.storage = storage
         self.handlers = handlers
+        # (interval_seconds, job kind): queued once per interval, deduplicated across restarts.
+        self.periodic = periodic or []
         self._stop = threading.Event()
         self._last_poll = 0.0
 
@@ -58,11 +61,19 @@ class Worker:
             with self.factory() as session:
                 jobs.requeue_stale(session)
                 session.commit()
+            self._queue_periodic()
             ingested = poll_mailbox(self.factory, self.mail, self.storage, self.settings)
             if ingested:
                 log.info("Ingested %d email(s)", ingested)
         while not self._stop.is_set() and self.run_one():
             pass
+
+    def _queue_periodic(self) -> None:
+        with self.factory() as session:
+            for interval, kind in self.periodic:
+                bucket = int(time.time() // interval)
+                jobs.enqueue(session, kind, {}, dedupe_key=f"{kind}:{interval}:{bucket}")
+            session.commit()
 
     def run_one(self) -> bool:
         """Run a single job. Returns False when the queue is empty."""

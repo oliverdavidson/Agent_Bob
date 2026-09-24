@@ -53,7 +53,10 @@ class GraphMailSource:
             **{
                 "$top": str(limit),
                 "$orderby": "receivedDateTime asc",
-                "$select": "id,internetMessageId,conversationId,from,subject,body,receivedDateTime",
+                "$select": (
+                    "id,internetMessageId,conversationId,from,subject,body,"
+                    "receivedDateTime,internetMessageHeaders"
+                ),
             },
         )
         messages = []
@@ -69,6 +72,10 @@ class GraphMailSource:
                     subject=m.get("subject") or "",
                     body_text=(m.get("body") or {}).get("content") or "",
                     received_at=datetime.fromisoformat(m["receivedDateTime"]),
+                    headers=[
+                        (h.get("name", ""), h.get("value", ""))
+                        for h in m.get("internetMessageHeaders") or []
+                    ],
                 )
             )
         return messages

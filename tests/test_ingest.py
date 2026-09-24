@@ -1,15 +1,9 @@
 from sqlalchemy import func, select
 
-from bob.mail.ingest import poll_mailbox, sender_trust
+from bob.mail.ingest import poll_mailbox
 from bob.mail.source import MailAttachment
 from bob.models import Attachment, AuditEvent, InboundEmail, Job
 from tests.conftest import PDF_BYTES, FakeMail, make_message
-
-
-def test_sender_trust(settings):
-    assert sender_trust("Oliver@BridgeWerk.ca", settings) == "internal"
-    assert sender_trust("billing@vendor.com", settings) == "known"
-    assert sender_trust("ap@lookalike-vendor.co", settings) == "unknown"
 
 
 def test_ingest_stores_email_attachment_and_queues_triage(factory, storage, settings):

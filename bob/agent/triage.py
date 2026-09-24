@@ -39,6 +39,7 @@ DocType = Literal[
 
 # Types that later slices code and post. Everything else is evidence or needs a person.
 POSTABLE_TYPES = {"vendor_invoice", "receipt", "credit_note"}
+UNVERIFIED_TRUST = {"unknown", "suspicious"}
 IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
 TEXT_TYPES = {"text/plain", "text/csv"}
 XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -125,8 +126,12 @@ def _attachment_blocks(index: int, att: Attachment, data: bytes) -> list[dict]:
 def build_messages(
     email: InboundEmail, readable: list[tuple[int, Attachment, bytes]]
 ) -> list[dict]:
+    warning = (email.sender_auth_detail or {}).get("reason")
     header = (
-        f"From: {email.sender_name or ''} <{email.sender_address}> (sender trust: {email.sender_trust})\n"
+        f"From: {email.sender_name or ''} <{email.sender_address}>\n"
+        f"Sender trust: {email.sender_trust}; email authentication: {email.sender_auth}"
+        + (f" ({warning})" if warning else "")
+        + "\n"
         f"Received: {email.received_at.isoformat()}\n"
         f"Subject: {email.subject}\n"
         f"<email_body>\n{email.body_text}\n</email_body>"
@@ -231,12 +236,14 @@ def triage_email(
             model_name=settings.model,
             prompt_version=PROMPT_VERSION,
         )
-        # Untrusted senders never feed posting directly: a person confirms first.
-        if doc.status == "ready_to_code" and email.sender_trust == "unknown":
+        # Unverified senders never feed posting directly: a person confirms first.
+        if doc.status == "ready_to_code" and email.sender_trust in UNVERIFIED_TRUST:
             doc.status = "needs_human"
-            doc.question = (
-                doc.question
-                or f"This came from an unknown sender ({email.sender_address}). Is it genuine?"
+            reason = (email.sender_auth_detail or {}).get("reason")
+            doc.question = doc.question or (
+                f"{reason} Is it genuine?"
+                if reason
+                else f"This came from an unknown sender ({email.sender_address}). Is it genuine?"
             )
         session.add(doc)
 

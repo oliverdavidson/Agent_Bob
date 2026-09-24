@@ -15,6 +15,8 @@ from bob.agent.triage import triage_email
 from bob.config import get_settings
 from bob.db import make_engine, make_sessionmaker
 from bob.models import Document, InboundEmail, Job
+from bob.qbo.client import NotConnected, QBOClient
+from bob.qbo.sync import sync_reference_data
 from bob.storage import make_storage
 from bob.worker import Worker
 
@@ -35,7 +37,21 @@ def build_worker() -> Worker:
             session, p["email_id"], client, storage, settings
         ),
     }
-    return Worker(SessionFactory, settings, GraphMailSource(settings), storage, handlers)
+    periodic = []
+    if settings.qbo_client_id:
+        qbo = QBOClient(SessionFactory, settings)
+        handlers["qbo_sync"] = lambda session, p: _sync_qbo(session, qbo)
+        periodic.append((settings.qbo_sync_hours * 3600, "qbo_sync"))
+    return Worker(SessionFactory, settings, GraphMailSource(settings), storage, handlers, periodic)
+
+
+def _sync_qbo(session, qbo: QBOClient) -> None:
+    try:
+        summary = sync_reference_data(session, qbo)
+    except NotConnected:
+        logging.getLogger(__name__).warning("QuickBooks is not connected; skipping sync")
+        return
+    logging.getLogger(__name__).info("QuickBooks sync: %s", summary)
 
 
 @asynccontextmanager
