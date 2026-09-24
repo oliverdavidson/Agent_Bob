@@ -4,7 +4,7 @@ Bob is BridgeWerk's bookkeeping agent. People email documents to `bob@bridgewerk
 
 The plan, decisions and build order are in [docs/phase1-spec.md](docs/phase1-spec.md).
 
-**Current state (slice 1):** mailbox ingestion and triage. Bob reads new mail, stores the originals, flags duplicates and classifies each attachment (invoice, receipt, statement, GL export and so on). Nothing is written to QuickBooks yet.
+**Current state:** Bob reads new mail, stores the originals, checks that the sender is genuine (SPF/DKIM/DMARC and lookalike domains), flags duplicates and classifies each attachment. The validator that checks proposed entries before posting is built, and so is the QuickBooks connection (sign-in, read-only reference sync, a client that refuses writes). The coding step and posting come next; nothing is written to QuickBooks yet.
 
 ## Layout
 
@@ -17,8 +17,11 @@ bob/
   storage.py       original documents (local disk in dev, Blob Storage in Azure)
   mail/            Microsoft Graph mailbox client and ingestion
   agent/           Claude on Foundry: client, triage step, versioned prompts
+  accounting/      proposed-entry shape, validator, validator context from the QBO cache
+  qbo/             QuickBooks OAuth, API client (writes disabled by default), reference sync
   worker.py        background loop: poll mailbox, run jobs
   main.py          FastAPI app (health, status) that also runs the worker
+evals/             test sets scored against the real model (see evals/README.md)
 migrations/        Alembic
 infra/main.bicep   Azure resources
 tests/
@@ -70,6 +73,12 @@ BOB_TEST_DATABASE_URL=postgresql+psycopg://user@localhost/bob_test pytest
    az role assignment create --assignee <identityPrincipalId> --role "<role>" --scope <foundry-resource-id>
    ```
 
-5. **Check it.** `az containerapp logs show -g rg-bob -n bob --follow`, then send a test invoice to `bob@bridgewerk.ca`.
+5. **QuickBooks (sandbox first).** In the [Intuit Developer portal](https://developer.intuit.com), create an app with the Accounting scope and a sandbox company. Add `http://localhost:8765/qbo/callback` as a redirect URI. Set `BOB_QBO_CLIENT_ID` and `BOB_QBO_CLIENT_SECRET`, then connect once:
+   ```bash
+   python -m bob.qbo.connect
+   ```
+   Open the printed link, approve, and paste back the address your browser lands on (an error page is fine; the code is in the URL). Bob then syncs accounts, vendors, tax codes and the closing date every `BOB_QBO_SYNC_HOURS`. Writes stay refused until `BOB_QBO_WRITES_ENABLED=true`.
+
+6. **Check it.** `az containerapp logs show -g rg-bob -n bob --follow`, then send a test invoice to `bob@bridgewerk.ca`.
 
 The Container App has no public ingress, since Bob polls the mailbox. It runs exactly one replica.

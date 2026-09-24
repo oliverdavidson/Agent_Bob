@@ -49,15 +49,18 @@ Decisions agreed so far, and the build plan they lead to.
 | Slice | Contents | Status |
 |---|---|---|
 | 1 | Skeleton, Postgres schema and queue, mailbox ingestion, triage, Bicep, tests | Done |
-| 2 | QBO OAuth and read sync (accounts, vendors, tax codes, closing date), write-guarded client, sandbox company | Next |
-| 3 | Coding step, validator, posting to the sandbox, undo | |
+| 1b | Validator; sender verification (SPF/DKIM/DMARC, lookalike domains); triage test set of 26 cases | Done |
+| 2 | QBO OAuth and read sync (accounts, vendors, tax codes, closing date), write-guarded client | Built; needs an Intuit sandbox to test live |
+| 3 | Coding step, posting to the sandbox, undo | Next |
 | 4 | Daily digest and email reply loop (needs Mail.Send on the mailbox) | |
 | 5 | Opening-balance import from the Sept 30 trial balance; Business Central history load | |
 | 6 | Month-end comparison report against Business Central for the Q4 run | |
 
 ## Open items
 
-- Materiality threshold and the hold list, with the accountant.
+- Materiality threshold (placeholder `BOB_MATERIALITY=25000`) and the hold list, with the accountant.
+- QBO OAuth tokens are stored in Postgres; move them to Key Vault before production.
+
 - Written coding policy: chart of accounts with plain-English descriptions and the rules the accountant uses.
 - Business Central exports: Sept 30 trial balance, open AP/AR, transaction history.
 - Foundry: Claude deployment name and the role assignment for Bob's managed identity.
