@@ -132,11 +132,14 @@ def vendor_history(session: Session, counterparty: str | None) -> str:
     return f"Previous bookings for {counterparty} (newest first):\n" + "\n".join(rows)
 
 
-def known_invoices(session: Session) -> tuple[frozenset, frozenset]:
+def known_invoices(session: Session, exclude_id: int | None = None) -> tuple[frozenset, frozenset]:
+    """Invoice keys and document hashes already in the books (QBO cache and live proposals)."""
     keys, hashes = set(), set()
     for bill in session.scalars(select(QboBill).where(QboBill.doc_number.is_not(None))):
         keys.add(invoice_key(bill.vendor_name or "", bill.doc_number))
     for p in session.scalars(select(Proposal).where(Proposal.status.in_(LIVE_STATUSES))):
+        if p.id == exclude_id:
+            continue
         if p.entry.get("invoice_number"):
             keys.add(invoice_key(p.entry["vendor_name"], p.entry["invoice_number"]))
         if p.entry.get("document_sha256"):

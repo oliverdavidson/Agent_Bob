@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     # Accounting policy. Placeholder until agreed with the accountant.
     materiality: Decimal = Decimal(25000)
 
+    # Posting safety limits for entries approved by rule (a person's approval bypasses them).
+    daily_post_cap_count: int = 25
+    daily_post_cap_amount: Decimal = Decimal(50000)
+    # Card receipts post as QBO Purchases against this account (e.g. the company card or the
+    # Float clearing account). Unset: receipts are held until it is configured.
+    expense_payment_account_id: str | None = None
+    expense_payment_type: Literal["CreditCard", "Cash", "Check"] = "CreditCard"
+
 
 @lru_cache
 def get_settings() -> Settings:

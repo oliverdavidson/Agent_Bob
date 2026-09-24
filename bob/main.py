@@ -10,6 +10,7 @@ from functools import partial
 from fastapi import FastAPI
 from sqlalchemy import func, select, text
 
+from bob.accounting.posting import post_proposal
 from bob.agent.coding import code_document
 from bob.agent.llm import make_client
 from bob.agent.triage import triage_email
@@ -45,6 +46,9 @@ def build_worker() -> Worker:
     if settings.qbo_client_id:
         qbo = QBOClient(SessionFactory, settings)
         handlers["qbo_sync"] = lambda session, p: _sync_qbo(session, qbo)
+        handlers["post_proposal"] = lambda session, p: post_proposal(
+            session, p["proposal_id"], qbo, storage, settings
+        )
         periodic.append((settings.qbo_sync_hours * 3600, "qbo_sync"))
     return Worker(SessionFactory, settings, GraphMailSource(settings), storage, handlers, periodic)
 

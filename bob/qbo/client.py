@@ -5,6 +5,7 @@ enforced: every write goes through `create`, which refuses unless BOB_QBO_WRITES
 true. Reads are GET requests; the only POSTs are writes.
 """
 
+import json as jsonlib
 import logging
 import time
 from datetime import timedelta
@@ -99,7 +100,12 @@ class QBOClient:
     # --- requests ---------------------------------------------------------------------------
 
     def _request(
-        self, method: str, path: str, params: dict | None = None, json: Any = None
+        self,
+        method: str,
+        path: str,
+        params: dict | None = None,
+        json: Any = None,
+        files: dict | None = None,
     ) -> dict:
         realm, token = self._access()
         params = {"minorversion": str(self.settings.qbo_minor_version), **(params or {})}
@@ -110,6 +116,7 @@ class QBOClient:
                 f"{self.base}/v3/company/{realm}/{path}",
                 params=params,
                 json=json,
+                files=files,
                 headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
             )
             if response.status_code == 401 and not refreshed:
@@ -154,12 +161,52 @@ class QBOClient:
     def preferences(self) -> dict:
         return self._request("GET", "preferences")["Preferences"]
 
-    def create(self, entity: str, payload: dict, request_id: str) -> dict:
-        """Create an object. `request_id` makes retries idempotent on Intuit's side."""
+    def _require_writes(self, action: str) -> None:
         if not self.settings.qbo_writes_enabled:
             raise WritesDisabled(
-                f"Refusing to create {entity}: QuickBooks writes are disabled "
+                f"Refusing to {action}: QuickBooks writes are disabled "
                 "(BOB_QBO_WRITES_ENABLED=false)."
             )
+
+    def create(self, entity: str, payload: dict, request_id: str) -> dict:
+        """Create an object. `request_id` makes retries idempotent on Intuit's side."""
+        self._require_writes(f"create {entity}")
         body = self._request("POST", entity.lower(), {"requestid": request_id}, json=payload)
         return body[entity]
+
+    def delete(self, entity: str, entity_id: str, sync_token: str, request_id: str) -> dict:
+        self._require_writes(f"delete {entity} {entity_id}")
+        body = self._request(
+            "POST",
+            entity.lower(),
+            {"operation": "delete", "requestid": request_id},
+            json={"Id": entity_id, "SyncToken": sync_token},
+        )
+        return body.get(entity, body)
+
+    def attach(
+        self,
+        entity: str,
+        entity_id: str,
+        filename: str,
+        content_type: str,
+        data: bytes,
+        request_id: str,
+    ) -> dict:
+        """Upload a file and link it to a transaction (QBO Attachable)."""
+        self._require_writes(f"attach a file to {entity} {entity_id}")
+        metadata = {
+            "AttachableRef": [{"EntityRef": {"type": entity, "value": entity_id}}],
+            "FileName": filename,
+            "ContentType": content_type,
+        }
+        body = self._request(
+            "POST",
+            "upload",
+            {"requestid": request_id},
+            files={
+                "file_metadata_01": (None, jsonlib.dumps(metadata), "application/json"),
+                "file_content_01": (filename, data, content_type),
+            },
+        )
+        return body["AttachableResponse"][0]["Attachable"]

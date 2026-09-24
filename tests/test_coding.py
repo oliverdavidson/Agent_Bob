@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import select
@@ -68,7 +69,7 @@ def seed_cache(s):
 
 def make_document(s, storage, counterparty="Northwind Cloud Software Inc.", status="ready_to_code"):
     email = InboundEmail(
-        graph_message_id=f"g-{counterparty}-{status}",
+        graph_message_id=f"g-{uuid4()}",
         sender_address="billing@northwindcloud.ca",
         sender_trust="known",
         subject="Invoice",
