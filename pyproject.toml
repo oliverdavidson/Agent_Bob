@@ -1,0 +1,40 @@
+[project]
+name = "agent-bob"
+version = "0.1.0"
+description = "Bob: email-driven bookkeeping agent for BridgeWerk (QuickBooks Online)"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=1.8,<2",
+    "alembic>=1.13",
+    "azure-identity>=1.17",
+    "azure-storage-blob>=12.20",
+    "fastapi>=0.115",
+    "httpx>=0.27",
+    "openpyxl>=3.1",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "sqlalchemy>=2.0.30",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["bob*"]
+
+[tool.setuptools.package-data]
+"bob.agent" = ["prompts/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
